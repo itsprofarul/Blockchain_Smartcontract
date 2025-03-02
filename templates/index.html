@@ -2,7 +2,234 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIUT University - Blockchain Dashboard</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+            transition: color 0.3s ease;
+        }
+        .alert {
+            background-color: #ffeeba;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f9f9f9;
+            transition: background 0.3s ease;
+        }
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: background 0.2s ease;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        input {
+            padding: 10px;
+            margin-right: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 25%;
+        }
+        #chainData {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: "Courier New", monospace;
+            white-space: pre-wrap;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border-radius: 0 0 10px 10px;
+        }
+
+        /* 🔥 Dark Mode Styles */
+        .dark-mode {
+            background-color: #222;
+            color: white;
+        }
+        .dark-mode .container {
+            background-color: #333;
+            color: white;
+        }
+        .dark-mode h1, .dark-mode h2, .dark-mode p {
+            color: white;
+        }
+        .dark-mode .section {
+            background: #444;
+        }
+        .dark-mode #chainData {
+            background: #222;
+            color: #0f0; /* Light green for better contrast */
+            border: 1px solid #555;
+        }
+        .dark-mode input {
+            background-color: #444;
+            color: white;
+            border: 1px solid #666;
+        }
+        .dark-mode button {
+            background: #0d6efd;
+        }
+        .dark-mode button:hover {
+            background: #0a58ca;
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <h1>SIUT University</h1>
+        <h2>Blockchain Dashboard</h2>
+
+        <div class="buttons">
+            <button onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
+        </div>
+
+        <div class="alert">
+            ⚠️ Transactions must have a valid Sender, Recipient, and Amount greater than 0.
+        </div>
+
+        <div class="section">
+            <h3>Add Transaction</h3>
+            <form id="transactionForm">
+                <input type="text" id="sender" placeholder="Sender" required>
+                <input type="text" id="recipient" placeholder="Recipient" required>
+                <input type="number" id="amount" placeholder="Amount" required>
+                <button type="submit">Add Transaction</button>
+            </form>
+            <p id="transactionMessage"></p>
+        </div>
+
+        <div class="section">
+            <h3>Mine a Block</h3>
+            <button onclick="mineBlock()">Mine Block</button>
+            <p id="mineMessage"></p>
+        </div>
+
+        <div class="section">
+            <h3>Blockchain Data</h3>
+            <div class="buttons">
+                <button onclick="getChain()">View Blockchain</button>
+                <button onclick="autoRefreshBlockchain()">🔄 Auto Refresh Blockchain</button>
+            </div>
+            <p><strong>Blockchain Length:</strong> <span id="blockchainLength">0</span></p>
+            <pre id="chainData"></pre>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2025 SIUT University - Blockchain Research Lab</p>
+    </div>
+
+    <script>
+        function getChain() {
+            $.get("/get_chain", function(data) {
+                if (data.chain) {
+                    $("#chainData").text(JSON.stringify(data.chain, null, 4));
+                    $("#blockchainLength").text(data.length);
+                } else {
+                    $("#chainData").html("<span style='color: red;'>❌ Error: Could not fetch blockchain data.</span>");
+                }
+            }).fail(function() {
+                $("#chainData").html("<span style='color: red;'>❌ Error: Server did not respond.</span>");
+            });
+        }
+
+        function mineBlock() {
+            $.get("/mine", function(data) {
+                if (data.message) {
+                    $("#mineMessage").html("<span style='color: green;'>✅ " + data.message + "</span>");
+                    getChain();
+                } else {
+                    $("#mineMessage").html("<span style='color: red;'>❌ Error: Could not mine block.</span>");
+                }
+            }).fail(function(xhr) {
+                let response = JSON.parse(xhr.responseText);
+                $("#mineMessage").html("<span style='color: red;'>❌ " + response.error + "</span>");
+            });
+        }
+
+        function autoRefreshBlockchain() {
+            getChain();
+            setInterval(getChain, 5000); // Refresh every 5 seconds
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle("dark-mode");
+        }
+
+        $(document).ready(function () {
+            $("#transactionForm").submit(function (event) {
+                event.preventDefault();
+                let sender = $("#sender").val().trim();
+                let recipient = $("#recipient").val().trim();
+                let amount = $("#amount").val().trim();
+
+                if (!sender || !recipient || !amount || isNaN(amount) || parseFloat(amount) <= 0) {
+                    $("#transactionMessage").html("<span style='color: red;'>❌ Error: Invalid transaction data.</span>");
+                    return;
+                }
+
+                $.ajax({
+                    url: "/add_transaction",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ sender: sender, recipient: recipient, amount: parseFloat(amount) }),
+                    success: function (response) {
+                        $("#transactionMessage").html("<span style='color: green;'>✅ " + response.message + "</span>");
+                        $("#sender").val("");
+                        $("#recipient").val("");
+                        $("#amount").val("");
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>
